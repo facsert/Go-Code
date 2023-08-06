@@ -1,7 +1,7 @@
 /*
  * @Author: facsert
  * @Date: 2023-08-02 20:03:24
- * @LastEditTime: 2023-08-02 22:44:20
+ * @LastEditTime: 2023-08-05 22:26:21
  * @LastEditors: facsert
  * @Description: logger package record log
  */
@@ -21,7 +21,7 @@ var logFile = "process.log"
 var (
 	info    *log.Logger
 	erro    *log.Logger
-	warring *log.Logger
+	warning *log.Logger
 	fp      *os.File
 )
 
@@ -40,7 +40,7 @@ func SetLogOutput(logPath string) {
 	out := io.MultiWriter(fp, os.Stdout)
 	info = log.New(out, "[ INFO  ]", log.Ldate|log.Ltime)
 	erro = log.New(out, "[ ERROR ]", log.Ldate|log.Ltime)
-	warring = log.New(out, "[WARRING]", log.Ldate|log.Ltime)
+	warning = log.New(out, "[WARNING]", log.Ldate|log.Ltime)
 }
 
 func absPath(path string) string {
@@ -67,7 +67,7 @@ func Error(format string, a ...any) {
 }
 
 func Warring(format string, a ...any) {
-	warring.Printf(format, a...)
+	warning.Printf(format, a...)
 }
 
 func Display(isPass bool, format string, a ...any) {
