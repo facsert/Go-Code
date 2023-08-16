@@ -1,7 +1,7 @@
 /*
  * @Author: facsert
  * @Date: 2023-08-02 20:03:24
- * @LastEditTime: 2023-08-05 22:26:21
+ * @LastEditTime: 2023-08-16 22:59:19
  * @LastEditors: facsert
  * @Description: logger package record log
  */
@@ -10,20 +10,24 @@ package logger
 
 import (
 	"fmt"
+	"bufio"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
-var logFile = "process.log"
 
 var (
 	info    *log.Logger
 	erro    *log.Logger
 	warning *log.Logger
 	fp      *os.File
+	mu      sync.Mutex
 )
+
+var logFile = "process.log"
 
 func init() {
 	logFile = absPath(logFile)
@@ -32,11 +36,17 @@ func init() {
 }
 
 func SetLogOutput(logPath string) {
+	Close()
+	
 	logFile = absPath(logPath)
 	fp, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		panic(fmt.Sprintf("open %s failed, err: %v\n", err, logFile))
 	}
+    
+	mu.Lock()
+	defer mu.Unlock()
+
 	out := io.MultiWriter(fp, os.Stdout)
 	info = log.New(out, "[ INFO  ]", log.Ldate|log.Ltime)
 	erro = log.New(out, "[ ERROR ]", log.Ldate|log.Ltime)
@@ -81,5 +91,12 @@ func Display(isPass bool, format string, a ...any) {
 }
 
 func Close() {
-	fp.Close()
+	mu.Lock()
+	defer mu.Unlock()
+
+	if fp != nil {
+		bufWriter := bufio.NewWriter(fp)
+		bufWriter.Flush()
+		fp.Close()
+	}
 }

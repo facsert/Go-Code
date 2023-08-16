@@ -1,7 +1,7 @@
 /*
  * @Author: facsert
  * @Date: 2023-08-01 21:46:50
- * @LastEditTime: 2023-08-02 22:49:00
+ * @LastEditTime: 2023-08-16 22:53:33
  * @LastEditors: facsert
  * @Description: package flags
  */
@@ -12,34 +12,40 @@ import (
 	"flag"
 )
 
-var paramList = []map[string]string{
+
+type Param struct {
+	Name    string
+	Default string
+	Help    string
+}
+
+var paramList = []Param{
 	{
-		"name":    "host",
-		"default": "127.0.0.1",
-		"help":    "server host",
+		Name:    "host",
+		Default: "127.0.0.1",
+		Help:    "server host",
 	},
 	{
-		"name":    "username",
-		"default": "root",
-		"help":    "server username",
+		Name:    "username",
+		Default: "root",
+		Help:    "server username",
 	},
 	{
-		"name":    "password",
-		"default": "admin",
-		"help":    "server password",
+		Name:    "password",
+		Default: "admin",
+		Help:    "server password",
 	},
 }
 
 func Main() (paramMap map[string]string) {
 	params := make(map[string]*string, len(paramList))
 	for _, param := range paramList {
-		var value string
-		flag.StringVar(&value, param["name"], param["default"], param["help"])
-		params[param["name"]] = &value
+		value := flag.String(param.Name, param.Default, param.Help)
+		params[param.Name] = value
 	}
-
+    
 	flag.Parse()
-
+	
 	paramMap = make(map[string]string, len(paramList))
 	for name, value := range params {
 		paramMap[name] = *value
