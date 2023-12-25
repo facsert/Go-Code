@@ -10,10 +10,12 @@ package main
 
 import (
 	_ "fmt"
-    _ "learn/common"
+	"learn/common"
+	_ "learn/common"
+	_ "learn/file"
 	_ "learn/flags"
 	"learn/logger"
-	_ "learn/file"
+	"time"
 	_ "time"
 )
 
@@ -23,13 +25,8 @@ func main() {
 	// common.Title("first title", 5)
 	// common.Title(" first title", 2)
 	// common.Title(" first title", 3)
-
+    common.Exec("ping -c 3 127.0.0.1", time.Second*10, true)
 	logger.Info("info log")
-	logger.Error("error log")
-
-	logger.SetLogOutput("summary.log")
-
-	logger.Info("summary log")
 	logger.Error("sum log")
 
 	defer logger.Close()

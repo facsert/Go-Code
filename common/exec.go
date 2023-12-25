@@ -9,58 +9,63 @@ package common
 
 import (
 	"bufio"
-	"fmt"
+	"log"
 	"io"
 	"os/exec"
 	"time"
+	"errors"
+	"strings"
 )
 
+var done = make(chan error)
 func Exec(cmd string, timeout time.Duration, view bool) (string, error) {
-	fmt.Println(cmd)
+	log.Println(cmd)
 	proc := exec.Command("bash", "-c", cmd)
 
 	stdout, err := proc.StdoutPipe()
 	proc.Stderr = proc.Stdout
 	if err != nil { 
-		fmt.Println("Get stdout failed:", err)
+		log.Println("Get stdout failed:", err)
 		return "", err
 	}
 
 	err = proc.Start()
 	if err != nil {
-		fmt.Println("Error starting command:", err)
+		log.Println("Error starting command:", err)
 		return "", err
 	}
 
-	reader, output := bufio.NewReader(stdout), ""
-    done := make(chan error)
-    
+    var output strings.Builder
 	go func() {
+		reader := bufio.NewReader(stdout)
 		defer close(done)
 		for {
 			line, err := reader.ReadString('\n')
-			if view { fmt.Print(line) }
-			output += line
+			if err == io.EOF {
+				done <- proc.Wait()
+				break
+			}
 	
-			if err != nil || io.EOF == err {
+			if err != nil {
 				done <- err
 				break
 			}
+
+			if view { log.Print(line) }
+			output.WriteString(line)
 		}
 	}()
 
 	select {
 	case err := <-done:
-		if err != nil { output += "\nCommand Run error" }
-		return output, nil
+		if err != nil { 
+			output.WriteString("\nCommand Run error")
+		}
+		return output.String(), err
 	case <-time.After(timeout):
-		output += "\nTimeout!!"
-		fmt.Print("\nTimeout!!\n")
+		output.WriteString("\nTimeout!!")
+		log.Print("\nTimeout!!\n")
 		proc.Process.Kill()
-		return output, nil
+		return output.String(), errors.New("Timeout!!")
 	}
 }
-
-
-
-
