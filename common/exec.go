@@ -18,7 +18,6 @@ import (
 func Exec(cmd string, timeout time.Duration, view bool) (string, error) {
 	fmt.Println(cmd)
 	proc := exec.Command("bash", "-c", cmd)
-	// defer proc.Wait()
 
 	stdout, err := proc.StdoutPipe()
 	proc.Stderr = proc.Stdout
@@ -37,6 +36,7 @@ func Exec(cmd string, timeout time.Duration, view bool) (string, error) {
     done := make(chan error)
     
 	go func() {
+		defer close(done)
 		for {
 			line, err := reader.ReadString('\n')
 			if view { fmt.Print(line) }
