@@ -10,31 +10,56 @@ package common
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os/exec"
+	"time"
 )
 
-func Run(cmd string) (output string, err error) {
+func Exec(cmd string, timeout time.Duration, view bool) (string, error) {
 	fmt.Println(cmd)
-	c := exec.Command("bash", "-c", cmd)  
+	proc := exec.Command("bash", "-c", cmd)
+	// defer proc.Wait()
 
-	stdout, err := c.StdoutPipe()
-	if err != nil { return output, err }
-    c.Stderr = c.Stdout
+	stdout, err := proc.StdoutPipe()
+	proc.Stderr = proc.Stdout
+	if err != nil { 
+		fmt.Println("Get stdout failed:", err)
+		return "", err
+	}
 
+	err = proc.Start()
+	if err != nil {
+		fmt.Println("Error starting command:", err)
+		return "", err
+	}
+
+	reader, output := bufio.NewReader(stdout), ""
+    done := make(chan error)
+    
 	go func() {
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			line := scanner.Text()
-			fmt.Println(line)
-			output += line + "\n"
+		for {
+			line, err := reader.ReadString('\n')
+			if view { fmt.Print(line) }
+			output += line
+	
+			if err != nil || io.EOF == err {
+				done <- err
+				break
+			}
 		}
 	}()
 
-	if err = c.Start(); err != nil { return output, err }
-	err = c.Wait()
-	return output, err
+	select {
+	case err := <-done:
+		if err != nil { output += "\nCommand Run error" }
+		return output, nil
+	case <-time.After(timeout):
+		output += "\nTimeout!!"
+		fmt.Print("\nTimeout!!\n")
+		proc.Process.Kill()
+		return output, nil
+	}
 }
-
 
 
 

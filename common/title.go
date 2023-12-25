@@ -15,6 +15,7 @@ import (
 
 func Title(title string, level int) string {
 	if level > 3 { level = 3 }
+	if level < 0 { level = 0 }
 	separator := [...]string{"#", "=", "*", "-"}[level]
 	space := [...]string{"\n\n", "\n", "", ""}[level]
 
