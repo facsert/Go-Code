@@ -9,10 +9,20 @@
 package main
 
 import (
+	"bufio"
 	_ "fmt"
 	"log/slog"
+	"os"
 )
 
 func main() {
-    slog.Info("slog info")
+	fs, _ := os.OpenFile("process.log", os.O_RDWR|os.O_CREATE, 0666)
+	scanner := bufio.NewScanner(fs)
+	output := ""
+	for scanner.Scan() {
+		output += scanner.Text() + "\n"
+		slog.Info(scanner.Text())
+	}
+	slog.Info("next line")
+	slog.Info("\n" + output)
 }
