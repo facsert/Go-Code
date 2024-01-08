@@ -1,6 +1,7 @@
 package path
 
 import (
+    "fmt"
 	"os"
 	"log/slog"
     "path/filepath"
@@ -33,15 +34,15 @@ func Join(elem...string) string {
 
 // 遍历路径下的文件
 func Walk(root string, walkFn filepath.WalkFunc) error {
-    return filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
+    return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
         if err != nil {
             return err
         }
 		if info.IsDir() {
-			slog.Info("path: %v\n", path)
+			slog.Info(fmt.Sprintf("path: %v\n", path))
 			return nil
 		} else {
-			slog.Info("file: %v\n", path)
+			slog.Info(fmt.Sprintf("file: %v\n", path))
 			return nil
 		}
 	})
@@ -91,7 +92,7 @@ func ReadDir(path string) error {
         return err
     }
 	for _, file := range files {
-		slog.Info("file: %v\n", file.Name())
+		slog.Info(fmt.Sprintf("file: %v\n", file.Name()))
 	}
 	return nil
 }
@@ -99,7 +100,7 @@ func ReadDir(path string) error {
 // 创建文件
 func Create(name string) (*os.File, error) {
     file, err := os.Create(name)
-	slog.Info("Create file %s\n", file.Name())
+	slog.Info(fmt.Sprintf("Create file %s\n", file.Name()))
 	return file, err
 }
 

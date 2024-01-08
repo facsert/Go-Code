@@ -9,10 +9,11 @@
 package main
 
 import (
-	_ "fmt"
+	"fmt"
 	"log/slog"
 )
 
 func main() {
-    slog.Info("slog info")
+	name := "facsert"
+    slog.Info(fmt.Sprintf("slog name: %s\n", name))
 }
