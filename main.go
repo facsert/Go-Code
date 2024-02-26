@@ -14,6 +14,6 @@ import (
 )
 
 func main() {
-	name := "facsert"
+	name := "John"
     slog.Info(fmt.Sprintf("slog name: %s\n", name))
 }
