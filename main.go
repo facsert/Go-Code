@@ -10,10 +10,15 @@ package main
 
 import (
 	"fmt"
+	"learn/pkg/comm"
 	"log/slog"
 )
 
 func main() {
-	name := "facsert"
+	name := "John"
     slog.Info(fmt.Sprintf("slog name: %s\n", name))
+    slog.Info(comm.AbsPath())
+	// for index, file := range comm.ListDir("pkg") {
+	// 	slog.Info(fmt.Sprintf("%d: %s\n", index, file))
+	// }
 }
