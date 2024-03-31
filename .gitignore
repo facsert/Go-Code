@@ -14,3 +14,61 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# 忽略编译输出和缓存文件
+*.exe
+*.test
+*.out
+*.a
+*.o
+*.so
+build/
+bin/
+pkg/
+
+# GoLand IDE 的相关临时文件
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Goland的本地调试日志和性能分析结果
+cover.out
+pprof/
+
+# go mod 缓存
+go.sum
+go.mod/go.sum
+vendor/
+
+# macOS系统特定的隐藏文件
+.DS_Store
+
+# 本地环境的配置文件（比如开发时用到的数据库凭证等）
+.env
+*.local.*
+
+# 测试报告和其他临时生成的文件
+reports/
+coverage.html
+*_test.log
+
+# 其他可能不需要版本控制的自定义排除项
+custom_temporary_folder/
+
+# 如果使用gofmt工具，并且希望忽略其自动格式化后产生的备份文件
+*.orig
+
+# Git自身的一些无用文件
+.gitattributes
+.gitignore
+
+# 进行Windows开发时可能需要排除的文件
+Thumbs.db
+ehthumbs.db
+
+# 如果使用Go Modules，则可以考虑添加以下规则避免提交modules缓存
+go/pkg/mod/
+
+# 若项目中有protoc生成的代码，也可以选择不提交这些生成的.go文件
+pb/*.go
