@@ -17,9 +17,10 @@ import (
 	"strings"
 )
 
-var done = make(chan error)
+
 func Exec(cmd string, timeout time.Duration, view bool) (string, error) {
 	log.Println(cmd)
+	var done = make(chan error)
 	proc := exec.Command("bash", "-c", cmd)
 
 	stdout, err := proc.StdoutPipe()
