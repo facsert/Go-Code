@@ -11,6 +11,7 @@ package comm
 import (
 	"fmt"
 	"io/fs"
+	"log"
 	"log/slog"
 	"path/filepath"
 	"runtime"
@@ -38,10 +39,10 @@ func AbsPath(elems ...string) string {
 
 // 标题打印
 func Title(title string, level int) string {
-	separator := [...]string{"#", "=", "*", "-"}[level % 3]
-	space := [...]string{"\n\n", "\n", "", ""}[level % 3]
-	line := strings.Repeat(separator, 80)
-	slog.Info(fmt.Sprintf("%s%s %s %s\n", space, line, title, line))
+	separator := [...]string{"#", "=", "*", "-"}[level % 4]
+	// space := [...]string{"\n\n", "\n", "", ""}[level % 4]
+	line := strings.Repeat(separator, 50)
+	log.Printf("%s %s %s", line, title, line)
 	return title
 }
 
