@@ -10,7 +10,7 @@ package comm
 
 import (
 	"fmt"
-	"io/fs"
+	"os"
 	"log"
 	"log/slog"
 	"path/filepath"
@@ -70,15 +70,10 @@ func Display(msg string, success bool) string {
 // 获取指定路径下的所有文件
 func ListDir(root string) []string {
 	var files []string
-    var fn fs.WalkDirFunc = func(path string, d fs.DirEntry, err error) error {
-        if err != nil {
-            return err
-        }
-        if !d.IsDir() {
-            files = append(files, path)
-        }
+	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+        if err != nil { return err }
+		if !info.IsDir() { files = append(files, path) }
 		return nil
-    }
-    filepath.WalkDir(root, fn)
+	})
 	return files
 }

@@ -17,5 +17,8 @@ func TestDateTime() {
 }
 
 func main() {
-    fmt.Println(comm.AbsPath("temp", "/root", "home", "home/tmp"))
+    // fmt.Println(comm.AbsPath(""))
+	for _, file := range comm.ListDir(comm.AbsPath("")) {
+		fmt.Println(file)
+	}
 }
