@@ -30,6 +30,12 @@ func init() {
 
 // 基于根目录的绝对路径
 func AbsPath(elems ...string) string {
+	for i := (len(elems)-1); i > 0; i-- {
+		if filepath.IsAbs(elems[i]) {
+			elems = elems[i:]
+			break
+		}
+	}
 	path := filepath.Join(elems...)
 	if filepath.IsAbs(path) {
 		return path
