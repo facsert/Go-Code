@@ -19,7 +19,7 @@ import (
 var (
 	logFile = comm.AbsPath("report.log")
 	// logLevel = slog.LevelDebug
-	// codeSource = false
+	// codeSource = false  // 是否打印代码位置
 )
 
 func Init() {
@@ -32,7 +32,6 @@ func Init() {
 	// }))
 
 	logger := slog.New(slog.NewJSONHandler(io.MultiWriter(os.Stdout, file), nil))
-
     slog.SetDefault(logger)
 }
 
