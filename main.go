@@ -9,6 +9,7 @@ import (
 
 
 func init() {
+	comm.Init()
     logger.Init()
 }
 

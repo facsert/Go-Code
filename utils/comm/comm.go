@@ -14,7 +14,6 @@ import (
 	"log"
 	"log/slog"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -22,10 +21,10 @@ var (
 	ROOT_PATH string
 )
 
-func init() {
-    _, file, _, ok := runtime.Caller(0)
-	if !ok { panic("Failed to get caller info") }
-    ROOT_PATH = filepath.Dir(filepath.Dir(filepath.Dir(file)))
+func Init() {
+   var err error
+   ROOT_PATH, err = os.Getwd()
+   if err != nil { panic("Failed to get current path")}
 }
 
 // 基于根目录的绝对路径
@@ -43,10 +42,21 @@ func AbsPath(elems ...string) string {
 	return filepath.Join(ROOT_PATH, path)
 }
 
+// 创建路径
+func MakeDirs(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return fmt.Errorf("create %s failed: %v", path, err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("check %s exist failed: %v", path, err)
+	}
+	return nil
+}
+
 // 标题打印
 func Title(title string, level int) string {
 	separator := [...]string{"#", "=", "*", "-"}[level % 4]
-	// space := [...]string{"\n\n", "\n", "", ""}[level % 4]
 	line := strings.Repeat(separator, 50)
 	log.Printf("%s %s %s", line, title, line)
 	return title
@@ -68,12 +78,19 @@ func Display(msg string, success bool) string {
 
 
 // 获取指定路径下的所有文件
-func ListDir(root string) []string {
+func ListDir(root string, abs bool) []string {
 	var files []string
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
         if err != nil { return err }
-		if !info.IsDir() { files = append(files, path) }
+		if !info.IsDir() { 
+			if abs {
+				files = append(files, path)
+			} else {
+				files = append(files, filepath.Base(path))
+			}
+		}
 		return nil
 	})
+	if err != nil { panic(fmt.Sprintf("Walk error: %v\n", err)) }
 	return files
 }
