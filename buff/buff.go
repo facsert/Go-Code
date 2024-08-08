@@ -18,7 +18,7 @@ func ReadByte(file string) ([]byte, error) {
 	reader, output := bufio.NewReader(fs), []byte{}
 	for {
         s, err := reader.ReadBytes('\n')
-		if err == io.EOF { break}
+		if err == io.EOF { break }
 		if err != nil {
 			slog.Info(fmt.Sprintf("read file %s error %v\n", file, err))
 			return []byte{}, err
