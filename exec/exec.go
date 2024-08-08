@@ -8,35 +8,38 @@
 package exec
 
 import (
+	"fmt"
 	"bufio"
-	"log"
 	"io"
+	"log/slog"
 	"os/exec"
-	"time"
-	"errors"
 	"strings"
+	"time"
+	"context"
 )
 
 
 func Exec(cmd string, timeout time.Duration, view bool) (string, error) {
-	log.Println(cmd)
-	var done = make(chan error)
+	slog.Info(cmd)
 	proc := exec.Command("bash", "-c", cmd)
 
 	stdout, err := proc.StdoutPipe()
-	proc.Stderr = proc.Stdout
 	if err != nil { 
-		log.Println("Get stdout failed:", err)
-		return "", err
+		return "", fmt.Errorf("get stdout failed: %w", err)
 	}
+
+	proc.Stderr = proc.Stdout
 
 	err = proc.Start()
 	if err != nil {
-		log.Println("Error starting command:", err)
-		return "", err
+		return "", fmt.Errorf("start command error: %w", err)
 	}
 
-    var output strings.Builder
+	ctx, cancle := context.WithTimeout(context.Background(), timeout)
+	defer cancle()
+	
+	var output strings.Builder
+	var done = make(chan error, 1)
 	go func() {
 		reader := bufio.NewReader(stdout)
 		defer close(done)
@@ -52,7 +55,7 @@ func Exec(cmd string, timeout time.Duration, view bool) (string, error) {
 				break
 			}
 
-			if view { log.Print(line) }
+			if view { slog.Info(line) }
 			output.WriteString(line)
 		}
 	}()
@@ -60,13 +63,12 @@ func Exec(cmd string, timeout time.Duration, view bool) (string, error) {
 	select {
 	case err := <-done:
 		if err != nil { 
-			output.WriteString("\nCommand Run error")
+			slog.Error(fmt.Sprintf("%s Run error\n", cmd))
 		}
 		return output.String(), err
-	case <-time.After(timeout):
-		output.WriteString("\nTimeout!!")
-		log.Print("\nTimeout!!\n")
+	case <- ctx.Done():
+		slog.Error("Timeout!!\n")
 		proc.Process.Kill()
-		return output.String(), errors.New("Timeout!!")
+		return output.String(), fmt.Errorf("timeout")
 	}
 }
