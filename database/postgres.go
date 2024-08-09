@@ -32,3 +32,4 @@ func Init() {
     }
     DB = db
 }
+
