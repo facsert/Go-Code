@@ -5,7 +5,7 @@ import (
 	"time"
 	"log/slog"
 
-	"learn/utils/comm"
+	"learn/comm"
 )
 
 func Test() {
