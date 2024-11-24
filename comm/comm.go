@@ -18,13 +18,11 @@ import (
 )
 
 var (
-	ROOT_PATH string
+	ROOT_PATH, GetPathError = os.Getwd()
 )
 
 func Init() {
-    var err error
-    ROOT_PATH, err = os.Getwd()
-    if err != nil { panic("Failed to get current path")}
+    if GetPathError != nil { panic("Failed to get current path") }
 }
 
 // 基于根目录的绝对路径
