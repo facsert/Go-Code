@@ -4,10 +4,12 @@ type Set[T comparable] struct {
 	elems map[T]struct{}
 }
 
-func NewSet[T comparable]() *Set[T] {
-	return &Set[T]{
-		elems: make(map[T]struct{}),
+func NewSet[S ~[]T, T comparable](s S) *Set[T] {
+	set := &Set[T]{elems: make(map[T]struct{})}
+	for _, elem := range s {
+		set.Add(elem)
 	}
+	return set
 }
 
 // 添加数据
