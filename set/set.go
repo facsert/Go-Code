@@ -4,8 +4,8 @@ type Set[T comparable] struct {
 	elems map[T]struct{}
 }
 
-func NewSet[S ~[]T, T comparable](s S) *Set[T] {
-	set := &Set[T]{elems: make(map[T]struct{})}
+func NewSet[T comparable](s ...T) *Set[T] {
+	set := &Set[T]{elems: make(map[T]struct{}, len(s))}
 	for _, elem := range s {
 		set.Add(elem)
 	}
@@ -35,7 +35,7 @@ func (s *Set[T]) Size() int {
 
 // 是否为空
 func (s *Set[T]) IsEmpty() bool {
-	return s.Size() == 0
+	return len(s.elems) == 0
 }
 
 // 清空
@@ -52,19 +52,20 @@ func (s *Set[T]) Values() []T {
 	return values
 }
 
-// 遍历所有元素
-func (s *Set[T]) All(yield func(T) bool) bool {
-	for elem := range s.elems {
-		if !yield(elem) {
-			return false
+// range 遍历所有元素
+func (s *Set[T]) All() func(yield func(T) bool) {
+    return func(yield func(T) bool) {
+		for elem := range s.elems {
+			if !yield(elem) {
+				return
+			}
 		}
 	}
-	return true
 }
 
 // 并集, set 合并
 func (s *Set[T]) Union(other *Set[T]) *Set[T] {
-	union := NewSet[T]()
+	union := &Set[T]{elems: make(map[T]struct{}, len(s.elems) + len(other.elems))}
 	for elem := range s.elems {
 		union.Add(elem)
 	}
@@ -76,7 +77,10 @@ func (s *Set[T]) Union(other *Set[T]) *Set[T] {
 
 // 交集, 获取两个 set 共有的元素
 func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
-	intersection := NewSet[T]()
+	intersection := &Set[T]{elems: make(map[T]struct{}, len(s.elems))}
+	if len(s.elems) > len(other.elems) {
+		s, other = other, s
+	}
 	for elem := range s.elems {
 		if other.Contains(elem) {
 			intersection.Add(elem)
@@ -87,7 +91,7 @@ func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
 
 // 差集, 获取 s 中不在 other 中的元素
 func (s *Set[T]) Difference(other *Set[T]) *Set[T] {
-	difference := NewSet[T]()
+	difference := &Set[T]{elems: make(map[T]struct{}, len(s.elems))}
 	for elem := range s.elems {
 		if !other.Contains(elem) {
 			difference.Add(elem)

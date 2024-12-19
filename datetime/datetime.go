@@ -2,8 +2,8 @@ package dateTime
 
 import (
 	// "fmt"
-	"time"
 	"log/slog"
+	"time"
 
 	"learn/comm"
 )
@@ -24,7 +24,7 @@ func Test() {
 
 // 返回当前时间点
 func Now() {
-    comm.Title("time.Now() -> time.Time", 3)
+	comm.Title("time.Now() -> time.Time", 3)
 	slog.Info("currentTime := time.Now()", slog.Time("currentTime", time.Now()))
 }
 
@@ -37,14 +37,14 @@ func Date() {
 // 解析时间片段
 func ParseDuration() {
 	comm.Title(`time.ParseDuration("8h1m1s") -> time.Duration, error`, 3)
-    d, _ := time.ParseDuration("8h1m1s")
+	d, _ := time.ParseDuration("8h1m1s")
 	slog.Info(`duration := time.ParseDuration("8h1m1s")`, slog.Float64("parse 8h1m1s to second", d.Seconds()))
 }
 
 // 时间点加减时间片段
 func Add() {
 	comm.Title("time.Time.Add(duration) -> time.Time", 3)
-	slog.Info("time.Now().Add(2 * time.Hour)", slog.Time("now + 2h", time.Now().Add(2 * time.Hour)))
+	slog.Info("time.Now().Add(2 * time.Hour)", slog.Time("now + 2h", time.Now().Add(2*time.Hour)))
 }
 
 // 时间点比较
@@ -56,7 +56,7 @@ func After() {
 
 // 时间点比较
 func Before() {
-    comm.Title("time.Time.Before(t) -> bool", 3)
+	comm.Title("time.Time.Before(t) -> bool", 3)
 	past := time.Now().Add(-2 * time.Hour)
 	slog.Info("time.Now().Add(-2 * time.Hour).Before(time.Now())", slog.Bool("past < now", past.Before(time.Now())))
 }
@@ -89,7 +89,7 @@ func Parse() {
 	comm.Title("time.Parse(format, timeStr) -> time.Time, error", 3)
 	t, _ := time.Parse(time.DateTime, "2023-01-01 12:00:00")
 	slog.Info(
-		`time.Parse(time.DateTime, "2023-01-01 12:00:00")`, 
+		`time.Parse(time.DateTime, "2023-01-01 12:00:00")`,
 		slog.Time("parse str to time,Time", t),
 	)
 	// time.DateTime    = "2006-01-02 15:04:05"
@@ -101,7 +101,7 @@ func Parse() {
 func Format() {
 	comm.Title("time.Time.Format(format) -> string", 3)
 	slog.Info(
-		`time.Time.Format(time.DateTime)`, 
+		`time.Time.Format(time.DateTime)`,
 		slog.String("currentTime with format 2006-01-02 15:04:05", time.Now().Format(time.DateTime)),
 	)
 }
