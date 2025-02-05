@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"strings"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 
 	"learn/comm"
 )
@@ -17,7 +17,7 @@ type Database struct {
 }
 
 func NewDatabase(dir string) *sql.DB {
-	db, err := sql.Open("sqlite3", dir)
+	db, err := sql.Open("sqlite", dir)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Open DB file error: %v", err))
 		log.Fatal(err)
@@ -92,7 +92,7 @@ func QueryData(db *sql.DB, table string, created string) ([]Record, error) {
 	return records, nil
 }
 
-// CGO_ENABLED=1 go run main.go
+// go run main.go
 func SqliteTest() {
 	var DATABASE_DIR = comm.AbsPath("file.db")
 	var DATABASE_TABLE = "record"
