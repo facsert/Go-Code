@@ -1,10 +1,3 @@
-/*
-* @Author: facsert
-* @Date: 2023-08-06 10:39:37
- * @LastEditTime: 2023-08-06 22:11:16
- * @LastEditors: facsert
-* @Description:
-*/
 package exec
 
 import (
@@ -19,56 +12,86 @@ import (
 )
 
 
-func Exec(cmd string, timeout time.Duration, view bool) (string, error) {
-	slog.Info(cmd)
-	proc := exec.Command("bash", "-c", cmd)
+func Exec(cmdStr string, timeout time.Duration, view bool) (string, error) {
+	slog.Info(cmdStr)
 
-	stdout, err := proc.StdoutPipe()
-	if err != nil { 
-		return "", fmt.Errorf("get stdout failed: %w", err)
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	proc.Stderr = proc.Stdout
-
-	err = proc.Start()
+	cmd := exec.CommandContext(ctx, "bash", "-c", cmdStr)
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return "", fmt.Errorf("start command error: %w", err)
+		return "", fmt.Errorf("stdout pipe: %w", err)
+	}
+	cmd.Stderr = cmd.Stdout // 合并标准错误到标准输出
+
+	if err := cmd.Start(); err != nil {
+		return "", fmt.Errorf("start command: %w", err)
 	}
 
-	ctx, cancle := context.WithTimeout(context.Background(), timeout)
-	defer cancle()
-	
 	var output strings.Builder
-	var done = make(chan error, 1)
+	lines := make(chan string)
+	scanDone := make(chan struct{})
+
+	// 启动读取goroutine
 	go func() {
+		defer close(lines)
 		reader := bufio.NewReader(stdout)
-		defer close(done)
 		for {
 			line, err := reader.ReadString('\n')
-			if err == io.EOF {
-				done <- proc.Wait()
-				break
-			}
-	
 			if err != nil {
-				done <- err
+				if err == io.EOF && line != "" {
+					lines <- line
+				}
 				break
 			}
-
-			if view { slog.Info(line) }
-			output.WriteString(line)
+			lines <- line
 		}
+		close(scanDone)
 	}()
 
-	select {
-	case err := <-done:
-		if err != nil { 
-			slog.Error(fmt.Sprintf("%s Run error\n", cmd))
+	var cmdErr error
+	loop:
+		for {
+			select {
+			case line, ok := <-lines:
+				if !ok {
+					break loop
+				}
+				if view {
+					slog.Info(strings.TrimSuffix(line, "\n"))
+				}
+				output.WriteString(line)
+			case <-scanDone:
+				break loop
+			case <-ctx.Done():
+				cmdErr = ctx.Err()
+				slog.Error("command timed out")
+				break loop
+			}
 		}
-		return output.String(), err
-	case <- ctx.Done():
-		slog.Error("Timeout!!\n")
-		proc.Process.Kill()
-		return output.String(), fmt.Errorf("timeout")
+
+	// 处理剩余数据
+	for line := range lines {
+		if view {
+			slog.Info(strings.TrimSuffix(line, "\n"))
+		}
+		output.WriteString(line)
 	}
+
+	// 获取最终命令状态
+	err = cmd.Wait()
+	if cmdErr == nil {
+		cmdErr = err
+	}
+
+	// 优先返回超时错误
+	if ctx.Err() == context.DeadlineExceeded {
+		return output.String(), fmt.Errorf("timeout: %w", ctx.Err())
+	}
+
+	if cmdErr != nil {
+		return output.String(), fmt.Errorf("command failed: %w", cmdErr)
+	}
+	return output.String(), nil
 }
