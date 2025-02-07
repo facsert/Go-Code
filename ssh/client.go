@@ -33,7 +33,7 @@ func NewClient(host string, port int, username string, password string, timeout 
     }
     sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", host, port), config)
     if err != nil {
-        return nil, fmt.Errorf(fmt.Sprintf("Connect host %s:%d error: %v\n", host, port, err))
+        return nil, fmt.Errorf("connect host %s:%d error: %v", host, port, err)
     }
     return &Client{host, port, username, password, sshClient}, nil
 }
@@ -46,8 +46,8 @@ func (c *Client) Exec(command string, timeout time.Duration) (string, error) {
 	}
     defer session.Close()
 
-    ctx, cancle := context.WithTimeout(context.Background(), timeout)
-    defer cancle()
+    ctx, cancel := context.WithTimeout(context.Background(), timeout)
+    defer cancel()
     
     done := make(chan error)
     defer close(done)
@@ -64,7 +64,7 @@ func (c *Client) Exec(command string, timeout time.Duration) (string, error) {
     case <- ctx.Done():
         slog.Info(string(output))
         slog.Error(fmt.Sprintf("Run %s timeout", command))
-        return string(output), fmt.Errorf(fmt.Sprintf("Run %s timeout", command))
+        return string(output), fmt.Errorf("Run %s timeout", command)
     }
 }
 
@@ -79,8 +79,8 @@ func (c *Client) Run(command string, timeout time.Duration) (string, error) {
 	stderr, err := session.StderrPipe()
 	if err != nil { return "", fmt.Errorf("failed to get stderr: %v", err) }
 
-    ctx, cancle := context.WithTimeout(context.Background(), timeout)
-    defer cancle()
+    ctx, cancel := context.WithTimeout(context.Background(), timeout)
+    defer cancel()
 
 	if err := session.Start(command); err != nil { 
         return "", fmt.Errorf("start command failed: %v", err)
