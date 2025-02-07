@@ -23,6 +23,7 @@ var (
 
 func Init() {
     if GetPathError != nil { panic("Failed to get current path") }
+	LoggerInit()
 }
 
 // 基于根目录的绝对路径
