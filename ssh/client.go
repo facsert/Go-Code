@@ -1,14 +1,12 @@
-package ssh
+package client
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"strings"
 
 	"bufio"
-	"bytes"
 	"sync"
 	"time"
 
@@ -30,6 +28,8 @@ type Client struct {
 
 	StdinPipe  io.WriteCloser
 	StdoutPipe io.Reader
+
+	mu sync.Mutex
 }
 
 func NewClient(host, port, username, password string, timeout time.Duration) (*Client, error) {
@@ -73,22 +73,20 @@ func (c *Client) Connect() error {
 
 	// 请求伪终端（PTY）以支持交互式命令（如 sudo）
 	modes := ssh.TerminalModes{
-		ssh.ECHO:          1,     // 启用输入回显
+		ssh.ECHO:          0,     // 启用输入回显
 		ssh.TTY_OP_ISPEED: 14400, // 输入速度
 		ssh.TTY_OP_OSPEED: 14400, // 输出速度
 	}
 
 	// 设置终端类型和窗口大小（行数、列数）
 	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+		c.Close()
 		return fmt.Errorf("failed to request PTY: %s", err)
 	}
 
-	// 将本地输入/输出与会话绑定
-	// session.Stdout = os.Stdout // 输出到控制台
-	// session.Stderr = os.Stderr // 错误输出到控制台
-
 	stdinPipe, err := session.StdinPipe()
 	if err != nil {
+		c.Close()
 		return fmt.Errorf("failed to get stdin pipe: %s", err)
 	}
 	c.StdinPipe = stdinPipe
@@ -96,11 +94,13 @@ func (c *Client) Connect() error {
 	// 创建管道以捕获输出
 	stdoutPipe, err := session.StdoutPipe()
 	if err != nil {
+		c.Close()
 		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 
 	stderrPipe, err := session.StderrPipe()
 	if err != nil {
+		c.Close()
 		return fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
@@ -108,6 +108,7 @@ func (c *Client) Connect() error {
 
 	// 启动远程 Shell
 	if err := session.Shell(); err != nil {
+		c.Close()
 		return fmt.Errorf("failed to start shell: %w", err)
 	}
 
@@ -115,29 +116,34 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) Run(cmd string, respTimeout, waitTimeout int, expects, errors []string, view bool) (string, error) {
-	// 发送命令到远程 Shell
-	_, err := fmt.Fprintf(c.StdinPipe, "%s\n", cmd)
-	if err != nil {
-		return "", err
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if view {
+		slog.Info(cmd)
 	}
 
-	output := ""
+	var output strings.Builder
 	lines := make(chan string)
 
-	wg.Add(1)
 	go func() {
 		defer close(lines)
-		defer wg.Done()
 
-		scanner := bufio.NewScanner(c.StdoutPipe)
-		for scanner.Scan() {
-			lines <- scanner.Text()
-		}
-
-		if err := scanner.Err(); err != nil {
-			slog.Error(fmt.Sprintf("error reading from stdout: %v", err))
+		reader := bufio.NewReader(c.StdoutPipe)
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil || io.EOF == err {
+				break
+			}
+			lines <- line
 		}
 	}()
+
+	// 发送命令到远程 Shell
+	_, err := fmt.Fprintf(c.StdinPipe, "\n%s\n", cmd)
+	if err != nil {
+		return "", fmt.Errorf("command write failed: %w", err)
+	}
 
 	respTimer := time.NewTimer(time.Duration(respTimeout) * time.Second)
 	waitTimer := time.NewTimer(time.Duration(waitTimeout) * time.Second)
@@ -145,40 +151,42 @@ func (c *Client) Run(cmd string, respTimeout, waitTimeout int, expects, errors [
 	for {
 		select {
 		case line, ok := <-lines:
-			output += line + "\n"
-
+			output.WriteString(line)
 			respTimer.Reset(time.Duration(respTimeout) * time.Second)
 
 			if !ok {
-				return output, fmt.Errorf("channel closed")
+				return output.String(), fmt.Errorf("channel closed")
 			}
 
 			if view {
-				slog.Info(line)
+				// slog.Info(fmt.Sprint(line))
+				fmt.Print(line)
 			}
 
 			for _, expect := range expects {
 				if strings.Contains(line, expect) {
-					return output, nil
+					return output.String(), nil
 				}
 			}
 			for _, error := range errors {
 				if strings.Contains(line, error) {
-					return output, fmt.Errorf("error: %s", error)
+					return output.String(), fmt.Errorf("error: %s", error)
 				}
 			}
 		case <-respTimer.C:
-			fmt.Printf("response timeout for %v\n", respTimeout)
-			return output, fmt.Errorf("response timeout")
+			slog.Error("response timeout", "response timeout",respTimeout)
+			return output.String(), fmt.Errorf("response timeout")
 		case <-waitTimer.C:
-			fmt.Printf("wait timeout for %v\n", waitTimeout)
-			return output, fmt.Errorf("wait timeout")
+			slog.Error("wait timeout", "wait timeout",waitTimeout)
+			return output.String(), fmt.Errorf("wait timeout")
 		}
 	}
 }
 
 func (c *Client) Exec(cmd string, waitTimeout int, view bool) (string, error) {
-
+	if view {
+		slog.Info(cmd)
+	}
 	// 创建 SSH 会话
 	session, err := c.SSHClient.NewSession()
 	if err != nil {
@@ -193,12 +201,17 @@ func (c *Client) Exec(cmd string, waitTimeout int, view bool) (string, error) {
 		return "", err
 	}
 
-	var b bytes.Buffer
-	output := ""
-	session.Stderr = &b
+	stderr, err := session.StdoutPipe()
+	// stderr, err = session.StderrPipe()
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+    
+	var output strings.Builder
+
 	session.Start(cmd)
-	//创建一个流来读取管道内内容，这里逻辑是通过一行一行的读取的
-	reader := bufio.NewReader(stdout)
+	reader := bufio.NewReader(io.MultiReader(stdout, stderr))
 
 	//实时循环读取输出流中的一行内容
 	for {
@@ -206,21 +219,23 @@ func (c *Client) Exec(cmd string, waitTimeout int, view bool) (string, error) {
 		if err != nil || io.EOF == err {
 			break
 		}
-		output += line + "\n"
+		output.WriteString(line)
 		slog.Info(line)
+		// fmt.Print(line)
 	}
 
 	//阻塞直到该命令执行完成，该命令必须是被Start方法开始执行的
-	session.Wait()
-	if b.Len() > 0 {
-		return "", errors.New(b.String())
-	}
-
-	return output, nil
+	return output.String(), session.Wait()
 }
 
 func (c *Client) Close() {
-	c.SSHClient.Close()
-	c.SSHSession.Close()
-	c.StdinPipe.Close()
+	if c.SSHSession != nil {
+		c.SSHSession.Close()
+	}
+	if c.SSHClient != nil {
+		c.SSHClient.Close()
+	}
+	if c.StdinPipe != nil {
+		c.StdinPipe.Close()
+	}
 }
