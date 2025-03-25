@@ -1,5 +1,6 @@
 package set
 
+
 type Set[T comparable] struct {
 	elems map[T]struct{}
 }
@@ -62,6 +63,7 @@ func (s *Set[T]) All() func(yield func(T) bool) {
 		}
 	}
 }
+
 
 // 并集, set 合并
 func (s *Set[T]) Union(other *Set[T]) *Set[T] {

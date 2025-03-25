@@ -1,8 +1,6 @@
 module learn
 
-go 1.22.0
-
-toolchain go1.23.2
+go 1.23.2
 
 require (
 	golang.org/x/crypto v0.26.0
