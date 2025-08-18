@@ -1,9 +1,9 @@
 package str
 
 import (
+	"fmt"
 	"strings"
 )
-
 
 // 判断字符串是否包含某个子串
 func Contains(s, sub string) bool {
@@ -68,3 +68,23 @@ func EndsWith(s, suffix string) bool {
 func Trim(s string) string {
 	return strings.TrimSpace(s)
 }
+
+// 自定义结构体打印内容
+type Tool struct {
+	Name string
+    Size int
+}
+
+func NewTool(name string, size int) Tool {
+	return Tool{
+		Name: name,
+		Size: size,
+	}
+}
+
+func (t Tool) String() string {
+	return fmt.Sprintf("A tool %s with %d size", t.Name, t.Size)
+}
+
+// fmt.Println(NewTool("car", 10))
+// A tool car with 10 size

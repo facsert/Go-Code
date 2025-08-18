@@ -14,15 +14,30 @@ import (
 	"log"
 	"log/slog"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
-var (
-	ROOT_PATH, GetPathError = os.Getwd()
-)
+var ROOT_PATH string
+
+// var (
+// 	ROOT_PATH, GetPathError = os.Getwd()
+// )
 
 func Init() {
-    if GetPathError != nil { panic("Failed to get current path") }
+    // 编译后生成可执行文件使用
+	// execPath, err := os.Executable()
+	// if err != nil {
+	// 	panic(fmt.Errorf("get file root path failed: %w", err))
+	// }
+    
+	// 调试时使用
+	_, execPath, _, ok := runtime.Caller(0)
+	if !ok {
+		panic(fmt.Errorf("get root path failed"))
+	}
+
+	ROOT_PATH = filepath.Dir(execPath)
 	LoggerInit()
 }
 
@@ -43,12 +58,15 @@ func AbsPath(elems ...string) string {
 
 // 创建路径
 func MakeDirs(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return fmt.Errorf("create %s failed: %v", path, err)
-		}
-	} else if err != nil {
-		return fmt.Errorf("check %s exist failed: %v", path, err)
+	fileInfo, err := os.Stat(path)
+    if os.IsNotExist(err) {
+		return os.MkdirAll(path, 0755)
+	}
+	if err != nil {
+		return err
+	}
+	if fileInfo.IsDir() {
+		return fmt.Errorf("%s exists, but not dir", path)
 	}
 	return nil
 }
@@ -56,7 +74,7 @@ func MakeDirs(path string) error {
 // 标题打印
 func Title(title string, level int) string {
 	separator := [...]string{"#", "=", "*", "-"}[level % 4]
-	line := strings.Repeat(separator, 50)
+	line := strings.Repeat(separator, 100)
 	log.Printf("%s %s %s", line, title, line)
 	return title
 }
@@ -75,13 +93,22 @@ func Display(msg string, success bool) string {
 	return msg
 }
 
+func Exists(dir string) (bool, error) {
+    _, err := os.Stat(dir)
+	if err == nil { return true, nil }
 
-// 获取指定路径下的所有文件
-func ListDir(root string, abs bool) []string {
-	var files []string
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+// 获取指定路径下的所有文件func ListDir(root string, abs bool) ([]string, error) {
+func ListDir(root string, abs bool) ([]string, error) {
+	files := make([]string, 0, 10)
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-        if err != nil { return err }
-		if !info.IsDir() { 
+		if err != nil { return err }
+		if !info.IsDir() {
 			if abs {
 				files = append(files, path)
 			} else {
@@ -90,6 +117,8 @@ func ListDir(root string, abs bool) []string {
 		}
 		return nil
 	})
-	if err != nil { panic(fmt.Sprintf("Walk error: %v\n", err)) }
-	return files
+	if err != nil {
+		return []string{}, fmt.Errorf("walk error: %w", err)
+	}
+	return files, nil
 }

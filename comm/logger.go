@@ -11,15 +11,15 @@ import (
 )
 
 var (
-	logFile  = AbsPath("log", "report.log")
-	logLevel = slog.LevelDebug
+	LOG_PATH  = AbsPath("log", "report.log")
+	LOG_LEVEL = slog.LevelDebug
 )
 
 func LoggerInit() {
-	MakeDirs(filepath.Dir(logFile))
+	MakeDirs(filepath.Dir(LOG_PATH))
 
 	log := &lumberjack.Logger{
-		Filename:   logFile, // 日志文件的位置
+		Filename:   LOG_PATH, // 日志文件的位置
 		MaxSize:    1,       // 文件最大尺寸（以MB为单位）
 		MaxBackups: 3,       // 保留的最大旧文件数量
 		MaxAge:     28,      // 保留旧文件的最大天数
@@ -28,7 +28,7 @@ func LoggerInit() {
 	}
 
 	handleOptions := slog.HandlerOptions{
-		Level: logLevel, // 设置打印等级(slog.LevelInfo)
+		Level: LOG_LEVEL, // 设置打印等级(slog.LevelInfo)
 	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(io.MultiWriter(log, os.Stdout), &handleOptions)))
 }
