@@ -5,27 +5,27 @@ import (
 	"os"
 	"time"
     
-	"gopkg.in/natefinch/lumberjack.v2"
+	"gopkg.in/natefinch/lumberjack.v2" // go get -u gopkg.in/natefinch/lumberjack.v2
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 
-	"devops/utils/comm"
+	"devops/pkg/comm"
 )
 
 var (
-	logFile  = comm.AbsPath("log", "report.log")
-	logLevel = log.LevelInfo
+	LOG_PATH  = comm.AbsPath("log", "report.log")
+	LOG_LEVEL = log.LevelInfo
 )
 
 func LoggerInit(app *fiber.App) {
 
 	// 设置 log 输出 level 和 输出文件
-	log.SetLevel(logLevel)
+	log.SetLevel(LOG_LEVEL)
 
 	writer := io.MultiWriter(os.Stdout,
 		&lumberjack.Logger{
-		Filename:   logFile, // 日志文件的位置
+		Filename:   LOG_PATH, // 日志文件的位置
 		MaxSize:    1,       // 文件最大尺寸（以MB为单位）
 		MaxBackups: 3,       // 保留的最大旧文件数量
 		MaxAge:     28,      // 保留旧文件的最大天数
@@ -40,10 +40,10 @@ func LoggerInit(app *fiber.App) {
 		Next:          nil,
 		Done:          nil,
 		Format:        "[${time}] ${ip} ${status} - ${latency} ${method} ${path} ${error}\n",
-		TimeFormat:    "2006/01/02 15:04:05",
+		TimeFormat:    "2006-01-02 15:04:05",
 		TimeZone:      "Asia/Shanghai",
 		TimeInterval:  500 * time.Millisecond,
-		Output:        writer,
+		// Stream:        writer,
 		DisableColors: false,
 	}))
 
