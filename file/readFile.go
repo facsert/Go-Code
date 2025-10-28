@@ -18,28 +18,32 @@ type File struct {
 }
 
 // 读取文件全部内容
-func (f *File) Read() string {
+func (f *File) Read() (string, error) {
+
 	content, err := os.ReadFile(f.FileName)
 	if err != nil {
-		panic(fmt.Sprintf("error: %s\n", err))
+		return "", fmt.Errorf("read file error: %w", err)
 	}
-	return string(content)
+	return string(content), nil
 }
 
 // 逐行读取文件
-func (f *File) ReadLine() []string {
-	file, err := os.OpenFile(f.FileName, os.O_RDONLY, 0666)
+func (f *File) ReadLine() ([]string, error) {
+	fs, err := os.OpenFile(f.FileName, os.O_RDONLY, 0666)
 	if err != nil {
-		panic(fmt.Sprintf("error: %v\n", err))
+        return []string{}, fmt.Errorf("open file error: %w", err)
 	}
-	defer file.Close()
+	defer fs.Close()
 
-	var lines []string
-	scanner := bufio.NewScanner(file)
+	lines := make([]string, 0, 100)
+	scanner := bufio.NewScanner(fs)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	return lines
+	if err := scanner.Err(); err != nil {
+		return []string{}, fmt.Errorf("scan error: %w", err)
+	}
+	return lines, nil
 }
 
 // 覆盖写入

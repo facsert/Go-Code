@@ -20,24 +20,26 @@ import (
 
 var ROOT_PATH string
 
-// var (
-// 	ROOT_PATH, GetPathError = os.Getwd()
-// )
-
 func Init() {
-    // 编译后生成可执行文件使用
-	// execPath, err := os.Executable()
-	// if err != nil {
-	// 	panic(fmt.Errorf("get file root path failed: %w", err))
-	// }
+	// 可执行文件路径
+	execPath, err := os.Executable()
+	if err != nil {
+		panic(fmt.Errorf("get file root path failed: %w", err))
+	}
     
-	// 调试时使用
-	_, execPath, _, ok := runtime.Caller(0)
+	// 文件路径不包含临时文件路径
+	if !strings.Contains(execPath, os.TempDir()) {
+		ROOT_PATH = filepath.Dir(execPath)
+		return
+	}
+    
+	// 源码路径
+	_, runtimePath, _, ok := runtime.Caller(0)
 	if !ok {
 		panic(fmt.Errorf("get root path failed"))
-	}
+	}	
+	ROOT_PATH = filepath.Dir(runtimePath)
 
-	ROOT_PATH = filepath.Dir(execPath)
 	LoggerInit()
 }
 
@@ -66,7 +68,7 @@ func MakeDirs(path string) error {
 		return err
 	}
 	if fileInfo.IsDir() {
-		return fmt.Errorf("%s exists, but not dir", path)
+		return fmt.Errorf("%s is not dir", path)
 	}
 	return nil
 }
@@ -93,14 +95,12 @@ func Display(msg string, success bool) string {
 	return msg
 }
 
-func Exists(dir string) (bool, error) {
-    _, err := os.Stat(dir)
-	if err == nil { return true, nil }
-
-	if os.IsNotExist(err) {
-		return false, nil
+func Exists(dir string) error {
+	if  _, err := os.Stat(dir); err == nil || os.IsNotExist(err) { 
+		return nil 
+	} else {
+		return err
 	}
-	return false, err
 }
 
 // 获取指定路径下的所有文件func ListDir(root string, abs bool) ([]string, error) {

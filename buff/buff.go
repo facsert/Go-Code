@@ -4,69 +4,48 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log/slog"
+	// "log/slog"
 	"os"
+	"strings"
 )
-
-// Reader 按字节读取
-func ReadByte(file string) ([]byte, error) {
-	fs, err := os.OpenFile(file, os.O_RDONLY, 0666)
-	if err!= nil {
-		slog.Info(fmt.Sprintf("open file %s error %v\n", file, err))
-		return []byte{}, err
-	}
-	reader, output := bufio.NewReader(fs), []byte{}
-	for {
-        s, err := reader.ReadBytes('\n')
-		if err == io.EOF { break }
-		if err != nil {
-			slog.Info(fmt.Sprintf("read file %s error %v\n", file, err))
-			return []byte{}, err
-		}
-		fmt.Println(string(s))
-		output = append(output, s...)
-	}
-    return output, nil
-}
 
 // Reader 缓存读取输出
 func Read(file string) (string, error) {
 	fs, err := os.OpenFile(file, os.O_RDONLY, 0666)
 	if err != nil {
-		slog.Info(fmt.Sprintf("open file %s error %v\n", file, err))
-		return fmt.Sprintf("open file %s error %v", file, err), err
+		return "", fmt.Errorf("open file error %w", err)
 	}
-	reader, output := bufio.NewReader(fs), ""
+
+	reader, output := bufio.NewReader(fs), make([]string, 0, 100)
 	for {
 		line, err := reader.ReadString('\n')
         if err == io.EOF { break}
 		if err != nil {
-			slog.Info(fmt.Sprintf("read file %s error %v\n", file, err))
-			return fmt.Sprintf("read file %s error %v", file, err), err
+			return "", fmt.Errorf("read file error %w", err)
 		}
-		slog.Info(line)
-		output += line + "\n"
+
+		// slog.Info(line)
+		output = append(output, line)
 	}
-	return output, nil
+	return strings.Join(output, "\n"), nil
 }
 
 // scanner 缓存读取
 func Scanner(file string) (string, error) {
 	fs, err := os.OpenFile(file, os.O_RDONLY, 0666)
 	if err != nil {
-		slog.Info(fmt.Sprintf("open file %s error %v\n", file, err))
-		return fmt.Sprintf("open file %s error %v", file, err), err
+		return "", fmt.Errorf("open file error %w", err)
 	}
-	scanner, output := bufio.NewScanner(fs), ""
+
+	scanner, output := bufio.NewScanner(fs), make([]string, 0, 100)
 	for scanner.Scan() {
-		slog.Info(scanner.Text())
-        output += scanner.Text() + "\n"
+		output = append(output, scanner.Text())
 	}
 	if scanner.Err() != nil {
-		slog.Info(fmt.Sprintf("read file %s error %v\n", file, err))
-		return fmt.Sprintf("read file %s error %v", file, err), err
+		return "", fmt.Errorf("read file error %w", err)
 	}
-	return output, nil
+
+	return strings.Join(output, "\n"), nil
 }
 
 
@@ -74,10 +53,13 @@ func Scanner(file string) (string, error) {
 func Writer(file string, s string) error {
 	fs, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err!= nil {
-		slog.Info(fmt.Sprintf("open file %s error %v\n", file, err))
+		return fmt.Errorf("open file error %w", err)
 	}
+
 	writer := bufio.NewWriter(fs)
-	_, err = writer.WriteString("insert string")
-	if err != nil { return err }
+	_, err = writer.WriteString(s)
+	if err != nil { 
+		return fmt.Errorf("write string error %w", err) 
+	}
 	return nil
 }
