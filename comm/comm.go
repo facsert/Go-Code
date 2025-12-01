@@ -21,26 +21,24 @@ import (
 var ROOT_PATH string
 
 func Init() {
-	// 可执行文件路径
-	execPath, err := os.Executable()
-	if err != nil {
-		panic(fmt.Errorf("get file root path failed: %w", err))
+	defer func() {
+        if ROOT_PATH == "" {
+			panic(fmt.Errorf("get root path failed"))
+		}
+		LoggerInit()
+	}()
+    // build 可执行文件
+    if execPath, err := os.Executable(); err == nil {
+		if !strings.Contains(execPath, os.TempDir()) {
+			ROOT_PATH = filepath.Dir(execPath)
+			return
+		}
 	}
-    
-	// 文件路径不包含临时文件路径
-	if !strings.Contains(execPath, os.TempDir()) {
-		ROOT_PATH = filepath.Dir(execPath)
+	// go run 源码路径
+	if _, runtimePath, _, ok := runtime.Caller(0); ok {
+        ROOT_PATH = filepath.Dir(filepath.Dir(filepath.Dir(runtimePath)))
 		return
 	}
-    
-	// 源码路径
-	_, runtimePath, _, ok := runtime.Caller(0)
-	if !ok {
-		panic(fmt.Errorf("get root path failed"))
-	}	
-	ROOT_PATH = filepath.Dir(runtimePath)
-
-	LoggerInit()
 }
 
 // 基于根目录的绝对路径
