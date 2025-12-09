@@ -6,7 +6,6 @@ import (
 	"io"
 	"strings"
 	"time"
-	"learn/comm"
     "encoding/json"
 	"net/http"
 )
@@ -28,7 +27,7 @@ func HttpGet(url string, opt ReqOption) (*http.Response, error) {
     }
     req, err := http.NewRequest("GET", url, nil)
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("create request err: %w", err)
     }
     req.Header.Set("Content-Type", "application/json")
     if opt.Headers != nil {
@@ -50,7 +49,7 @@ func HttpGet(url string, opt ReqOption) (*http.Response, error) {
     }
     resp, err := client.Do(req)
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("send request err: %w", err)
     }
     return resp, nil
 }
@@ -70,14 +69,14 @@ func HttpPost(url string, opt ReqOption) (*http.Response, error) {
         default:
             jsonData, err := json.Marshal(v)
             if err != nil {
-                return nil, err
+                return nil, fmt.Errorf("parse body err: %w", err)
             }
             body = bytes.NewReader(jsonData)
         }
     }
     req, err := http.NewRequest("POST", url, body)
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("create request err: %w", err)
     }
     req.Header.Set("Content-Type", "application/json")
     if opt.Headers != nil {
@@ -99,7 +98,7 @@ func HttpPost(url string, opt ReqOption) (*http.Response, error) {
     }
     resp, err := client.Do(req)
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("send request err: %w", err)
     }
     return resp, nil
 }
