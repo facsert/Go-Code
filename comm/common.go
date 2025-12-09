@@ -93,18 +93,20 @@ func Display(msg string, success bool) string {
 	return msg
 }
 
+// 判断文件或路径是否存在
 func Exists(dir string) error {
-	if  _, err := os.Stat(dir); err == nil || os.IsNotExist(err) { 
-		return nil 
-	} else {
-		return err
+	if  _, err := os.Stat(dir); err == nil || os.IsExist(err) { 
+		return true
 	}
+	return false
 }
 
-// 获取指定路径下的所有文件func ListDir(root string, abs bool) ([]string, error) {
-func ListDir(root string, abs bool) ([]string, error) {
+// 获取路径下所有文件
+// dst 目标路径
+// abs 是否返回绝对路径
+func ListDir(dst string, abs bool) ([]string, error) {
 	files := make([]string, 0, 10)
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(dst, func(path string, info os.FileInfo, err error) error {
 		if err != nil { return err }
 		if !info.IsDir() {
 			if abs {
