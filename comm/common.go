@@ -94,7 +94,7 @@ func Display(msg string, success bool) string {
 }
 
 // 判断文件或路径是否存在
-func Exists(dir string) error {
+func Exists(dir string) bool {
 	if  _, err := os.Stat(dir); err == nil || os.IsExist(err) { 
 		return true
 	}
