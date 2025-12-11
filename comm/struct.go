@@ -6,25 +6,30 @@ import (
 )
 
 type TagType string
+
 var (
-	Json TagType = "json"
-	Insert TagType = "insert"
-	Update TagType = "update"
+	JsonTag   TagType = "json"
+	InsertTag TagType = "insert"
+	UpdateTag TagType = "update"
 )
 
-func parseJsonTag(field reflect.StructField, tag TagType) string {
+func parseTag(field reflect.StructField, tag TagType) string {
 	jsonTag := field.Tag.Get(string(tag))
-	if  jsonTag == "-" {
+	if jsonTag == "-" {
 		return ""
 	}
 	if idx := strings.Index(jsonTag, ","); idx != -1 {
-		return jsonTag[:idx]	
+		return jsonTag[:idx]
 	}
+
+	if jsonTag != "" {
+		return jsonTag
+	}
+
 	return field.Name
 }
 
-
-func StructKeys(m any, tag TagType) []string {
+func StructKeys(m any, tags ...TagType) []string {
 	if m == nil {
 		return nil
 	}
@@ -32,10 +37,16 @@ func StructKeys(m any, tag TagType) []string {
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
+
+	tag := JsonTag
+	if len(tags) > 0 {
+		tag = tags[0]
+	}
+
 	keys := make([]string, 0, t.NumField())
 	for index := 0; index < t.NumField(); index++ {
-		if key := parseJsonTag(t.Field(index), tag); key != "" {
-		    keys = append(keys, key)	
+		if key := parseTag(t.Field(index), tag); key != "" {
+			keys = append(keys, key)
 		}
 	}
 	return keys
@@ -45,7 +56,7 @@ func StructValue(m any, key string) any {
 	if m == nil {
 		return nil
 	}
-	
+
 	t := reflect.TypeOf(m)
 	v := reflect.ValueOf(m)
 
@@ -60,11 +71,11 @@ func StructValue(m any, key string) any {
 	return nil
 }
 
-func StructMap(m any, tag TagType) map[string]any {
+func StructMap(m any, tags ...TagType) map[string]any {
 	if m == nil {
 		return nil
 	}
-	
+
 	t := reflect.TypeOf(m)
 	v := reflect.ValueOf(m)
 
@@ -72,9 +83,14 @@ func StructMap(m any, tag TagType) map[string]any {
 		t, v = t.Elem(), v.Elem()
 	}
 
+	tag := JsonTag
+	if len(tags) > 0 {
+		tag = tags[0]
+	}
+
 	mMap := make(map[string]any, t.NumField())
 	for index := 0; index < t.NumField(); index++ {
-		if key := parseJsonTag(t.Field(index), tag); key != "" {
+		if key := parseTag(t.Field(index), tag); key != "" {
 			mMap[key] = v.Field(index).Interface()
 		}
 	}
