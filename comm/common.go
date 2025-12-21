@@ -25,7 +25,9 @@ func Init() {
         if ROOT_PATH == "" {
 			panic(fmt.Errorf("get root path failed"))
 		}
-		LoggerInit()
+		if err := NewLogger(AbsPath("log", "report.log"), 50); err != nil {
+			log.Fatalf("initialize logger failed: %v", err)
+		}
 	}()
     // build 可执行文件
     if execPath, err := os.Executable(); err == nil {
