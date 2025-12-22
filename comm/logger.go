@@ -3,30 +3,34 @@ package comm
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"time"
-	"log/slog"
 )
 
-type Logger struct {
-	FilePath string
-	MaxSize  int
+var DefaultLog *Logger
 
-	maxSize  int64
-	currSize int64
-	file     *os.File
-	mu       sync.Mutex
+type Logger struct {
+	FilePath  string
+	MaxSizeMB int // MB
+
+	maxSizeByte int64 // byte
+	maxBackup   int
+	currSize    int64
+	file        *os.File
+	mu          sync.Mutex
 }
 
 func exists(dir string) bool {
-	if _, err := os.Stat(dir); err == nil || os.IsExist(err) {
-		return true
-	}
-	return false
+	_, err := os.Stat(dir)
+	return err == nil
 }
-func NewLogger(filePath string, maxSize int) error {
+
+func NewLogger(filePath string, maxSize, maxBackup int) error {
 	if !exists(filepath.Dir(filePath)) {
 		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
 			return fmt.Errorf("create directory: %w", err)
@@ -34,30 +38,31 @@ func NewLogger(filePath string, maxSize int) error {
 	}
 
 	l := &Logger{
-		FilePath: filePath,
-		MaxSize:  maxSize,
+		FilePath:  filePath,
+		MaxSizeMB: maxSize,
 
-		maxSize:  int64(maxSize * 10),
-		currSize: 0,
-		file:     nil,
+		maxSizeByte: int64(maxSize * 1024 * 1025),
+		maxBackup:   maxBackup,
+		currSize:    0,
+		file:        nil,
 	}
 
 	if err := l.openFile(filePath); err != nil {
 		return err
 	}
-    
+
+	DefaultLog = l
 	slog.SetDefault(
 		slog.New(slog.NewTextHandler(
-			io.MultiWriter(l, os.Stdout), 
-			&slog.HandlerOptions{ Level: slog.LevelInfo},
+			io.MultiWriter(l, os.Stdout),
+			&slog.HandlerOptions{Level: slog.LevelInfo},
 		)),
-    )
-
+	)
 	return nil
 }
 
-func (l *Logger) openFile(FilePath string) error {
-	file, err := os.OpenFile(FilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+func (l *Logger) openFile(filePath string) error {
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return fmt.Errorf("open file: %w", err)
 	}
@@ -74,35 +79,31 @@ func (l *Logger) openFile(FilePath string) error {
 }
 
 func (l *Logger) Write(p []byte) (n int, err error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
 	writeLen := int64(len(p))
-	if writeLen > l.maxSize {
+	if writeLen > l.maxSizeByte {
 		return 0, fmt.Errorf("write length bigger than max size")
 	}
 
-	if l.currSize+int64(n) > l.maxSize {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.currSize+writeLen > l.maxSizeByte {
 		if err := l.rotate(); err != nil {
 			return 0, err
 		}
 	}
 
-	l.currSize += int64(n)
 	n, err = l.file.Write(p)
+	if err == nil {
+		l.currSize += int64(n)
+	}
 	return n, err
 }
 
 func (l *Logger) rotate() error {
 	if l.file != nil {
-		if err := l.file.Close(); err != nil {
-			return fmt.Errorf("close file before rotate: %w", err)
-		}
-	}
-
-	stat, err := os.Stat(l.FilePath)
-	if os.IsNotExist(err) || stat.Size() == 0 {
-		return l.openFile(l.FilePath)
+		l.file.Close()
+		l.file = nil
 	}
 
 	dir := filepath.Dir(l.FilePath)
@@ -111,11 +112,64 @@ func (l *Logger) rotate() error {
 	prefix := name[:len(name)-len(ext)]
 	newName := filepath.Join(dir, fmt.Sprintf("%s-%s%s", prefix, time.Now().Format("20060102_150405"), ext))
 
-	if err := os.Rename(l.FilePath, newName); err != nil {
+	if err := os.Rename(l.FilePath, newName); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("rename file: %w", err)
 	}
 
+	l.clean(dir, prefix)
+	l.currSize = 0
 	return l.openFile(l.FilePath)
+}
+
+func (l *Logger) clean(dir, prefix string) {
+	if l.maxBackup <= 0 {
+		return
+	}
+
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+
+	type LogFile struct {
+		Name    string
+		ModTime time.Time
+	}
+
+	logFiles := make([]LogFile, 0, len(files))
+	for _, file := range files {
+		name := file.Name()
+		if file.IsDir() {
+			continue
+		}
+
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+
+		info, err := file.Info()
+		if err != nil {
+			continue
+		}
+
+		logFiles = append(logFiles, LogFile{name, info.ModTime()})
+	}
+
+	removeNum := len(logFiles) - l.maxBackup
+	if removeNum <= 0 {
+		return
+	}
+
+	slices.SortFunc(logFiles, func(a, b LogFile) int {
+		if a.ModTime.After(b.ModTime) {
+			return 1
+		}
+		return -1
+	})
+
+	for i := range removeNum {
+		os.Remove(filepath.Join(dir, logFiles[i].Name))
+	}
 }
 
 func (l *Logger) Close() error {

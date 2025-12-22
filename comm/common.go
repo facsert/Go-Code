@@ -10,9 +10,9 @@ package comm
 
 import (
 	"fmt"
-	"os"
 	"log"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -25,7 +25,7 @@ func Init() {
         if ROOT_PATH == "" {
 			panic(fmt.Errorf("get root path failed"))
 		}
-		if err := NewLogger(AbsPath("log", "report.log"), 50); err != nil {
+		if err := NewLogger(AbsPath("log", "report.log"), 50, 3); err != nil {
 			log.Fatalf("initialize logger failed: %v", err)
 		}
 	}()
@@ -97,10 +97,8 @@ func Display(msg string, success bool) string {
 
 // 判断文件或路径是否存在
 func Exists(dir string) bool {
-	if  _, err := os.Stat(dir); err == nil || os.IsExist(err) { 
-		return true
-	}
-	return false
+	_, err := os.Stat(dir)
+	return err == nil
 }
 
 // 获取路径下所有文件

@@ -29,7 +29,11 @@ func parseTag(field reflect.StructField, tag TagType) *fieldTag {
 	if strings.TrimSpace(name) == "" {
 		name = field.Name
 	}
-	return &fieldTag{name, false, strings.Contains(opts, "omitzero")}
+	return &fieldTag{
+		name: name,
+		ignore: false, 
+		omitZero: strings.Contains(opts, "omitzero"),
+	}
 }
 
 // 确保传入的是结构体类型
