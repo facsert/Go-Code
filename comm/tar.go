@@ -1,18 +1,18 @@
 package comm
 
 import (
-	"archive/zip"
 	"archive/tar"
+	"archive/zip"
 	"compress/gzip"
 	"fmt"
 	"io"
-    "path/filepath"
 	"os"
+	"path/filepath"
 )
 
 // 递归搜索 src 路径下文件打包生成 dst
 func CompressZip(src, dst string) error {
-    zipfile, err := os.Create(dst)
+	zipfile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("create zipfile failed: %w", err)
 	}
@@ -21,7 +21,7 @@ func CompressZip(src, dst string) error {
 	zw := zip.NewWriter(zipfile)
 	defer zw.Close()
 
-    return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
+	return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -30,12 +30,12 @@ func CompressZip(src, dst string) error {
 		if err != nil {
 			return err
 		}
-        if r == "." {
+		if r == "." {
 			return nil
 		}
 		r = filepath.ToSlash(r)
-        
-		info , err := d.Info()
+
+		info, err := d.Info()
 		if err != nil {
 			return err
 		}
@@ -51,18 +51,18 @@ func CompressZip(src, dst string) error {
 		} else {
 			header.Method = zip.Deflate
 		}
-        
+
 		w, err := zw.CreateHeader(header)
 		if err != nil {
 			return fmt.Errorf("create zip head failed: %w", err)
 		}
-        
+
 		f, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf("open %s failed: %w", path, err)
 		}
 		f.Close()
-        
+
 		buffer := make([]byte, 32*1024)
 		_, err = io.CopyBuffer(w, f, buffer)
 		if err != nil {
@@ -72,7 +72,6 @@ func CompressZip(src, dst string) error {
 		return nil
 	})
 }
-
 
 func UnTarGz(src, dst string) error {
 	f, err := os.Open(src)

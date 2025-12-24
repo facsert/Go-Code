@@ -39,20 +39,31 @@ var paramList = []Param{
 	},
 }
 
-func FlagInit() (paramMap map[string]string) {
-	params := make(map[string]*string, len(paramList))
-	for _, param := range paramList {
-		value := flag.String(param.Name, param.Default, param.Help)
-		params[param.Name] = value
+var USAGE = `
+Usage of %s:
+    %s
+	-host string
+		set host (default "127.0.0.1")
+	-password string
+		set password (default "admin")
+	-username string
+		set username (default "root")
+`
+
+func FlagInit() Param {
+    param := Param{}
+	flag.StringVar(&param.Name, "name", "default_name", "set name")
+	flag.StringVar(&param.Default, "default", "default_default", "set default")
+	flag.StringVar(&param.Help, "help", "set help", "set help")
+
+	flag.Usage = func() {
+		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, USAGE, os.Args[0])
 	}
-    
+
 	flag.Parse()
 	
-	paramMap = make(map[string]string, len(paramList))
-	for name, value := range params {
-		paramMap[name] = *value
-	}
-	return paramMap
+	return param
 }
 
 type Args struct {
@@ -68,11 +79,8 @@ func NormalFlag() *Args {
 	list := flag.String("list", "0,1,2,3,4,5,6,7", "num list")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
 		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "\nExample:\n")
-		fmt.Fprintf(os.Stderr, "  %s -dir=/home/log  \"set dir\"\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  %s -output=/home/log -list=1,2,3  \"set output and list\"\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, USAGE, os.Args[0])
 	}
 
 	flag.Parse()
