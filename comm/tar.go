@@ -2,6 +2,8 @@ package comm
 
 import (
 	"archive/zip"
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
 	"io"
     "path/filepath"
@@ -69,4 +71,54 @@ func CompressZip(src, dst string) error {
 
 		return nil
 	})
+}
+
+
+func UnTarGz(src, dst string) error {
+	f, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	gzr, err := gzip.NewReader(f)
+	if err != nil {
+		return err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		targetPath := filepath.Join(dst, header.Name)
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+				return err
+			}
+			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(outFile, tr); err != nil {
+				outFile.Close()
+				return err
+			}
+			outFile.Close()
+		default:
+		}
+	}
+	return nil
 }
