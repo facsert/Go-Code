@@ -11,7 +11,7 @@ import (
 )
 
 
-type ReqOption struct {
+type ReqOpt struct {
     Timeout time.Duration
     Headers map[string]string
     Cookie map[string]string
@@ -21,7 +21,14 @@ type ReqOption struct {
     FormData map[string]string
     File string
 }
-func HttpGet(url string, opt ReqOption) (*http.Response, error) {
+
+type Resp[T any] struct {
+	Result  bool   `json:"result"`
+	Msg     string `json:"msg"`
+	Content T      `json:"content"`
+}
+
+func HttpGet(url string, opt ReqOpt) (*http.Response, error) {
     client := http.Client{
         Timeout: opt.Timeout,
     }
@@ -54,7 +61,7 @@ func HttpGet(url string, opt ReqOption) (*http.Response, error) {
     return resp, nil
 }
 
-func HttpPost(url string, opt ReqOption) (*http.Response, error) {
+func HttpPost(url string, opt ReqOpt) (*http.Response, error) {
     client := http.Client{
         Timeout: opt.Timeout,
     }
@@ -101,6 +108,25 @@ func HttpPost(url string, opt ReqOption) (*http.Response, error) {
         return nil, fmt.Errorf("send request err: %w", err)
     }
     return resp, nil
+}
+
+// 解析响应
+func Parse[T any](r *http.Response) (*T, error) {
+	defer r.Body.Close()
+
+	s, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	if r.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("code: %d, response: %s", r.StatusCode, string(s))
+	}
+	var v T
+	err = json.Unmarshal(s, &v)
+	if err != nil {
+		return nil, fmt.Errorf("parse err: %w", err)
+	}
+	return &v, nil
 }
 
 

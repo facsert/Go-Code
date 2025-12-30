@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -22,24 +23,27 @@ var ROOT_PATH string
 
 func Init() {
 	defer func() {
-        if ROOT_PATH == "" {
+		if ROOT_PATH == "" {
 			panic(fmt.Errorf("get root path failed"))
 		}
 		if err := NewLogger(AbsPath("log", "report.log"), 50, 3); err != nil {
 			log.Fatalf("initialize logger failed: %v", err)
 		}
 	}()
-    // build 可执行文件
-    if execPath, err := os.Executable(); err == nil {
-		if !strings.Contains(execPath, os.TempDir()) {
+	// go run 源码路径
+	_, runtimePath, _, ok := runtime.Caller(0)
+	if ok && strings.HasSuffix(runtimePath, ".go") {
+		ROOT_PATH = filepath.Dir(filepath.Dir(runtimePath))
+		return
+	}
+
+	// build 可执行文件
+	execPath, err := os.Executable()
+	if err == nil {
+		if !strings.Contains(execPath, "exe") {
 			ROOT_PATH = filepath.Dir(execPath)
 			return
 		}
-	}
-	// go run 源码路径
-	if _, runtimePath, _, ok := runtime.Caller(0); ok {
-        ROOT_PATH = filepath.Dir(filepath.Dir(filepath.Dir(runtimePath)))
-		return
 	}
 }
 
@@ -74,7 +78,8 @@ func MakeDirs(path string) error {
 }
 
 // 标题打印
-func Title(title string, level int) string {
+func Title(level int, title string, a ...any) string {
+	title = fmt.Sprintf(title, a)
 	separator := [...]string{"#", "=", "*", "-"}[level % 4]
 	line := strings.Repeat(separator, 100)
 	log.Printf("%s %s %s", line, title, line)
@@ -82,16 +87,17 @@ func Title(title string, level int) string {
 }
 
 // 阶段性结果打印
-func Display(msg string, success bool) string {
+func Display(success bool, msg string, a ...any) string {
+	msg = fmt.Sprintf(msg, a)
 	length, chars := 80, ""
 	if success {
-		slog.Info(fmt.Sprintf("%-" + fmt.Sprintf("%d", length) + "s  [PASS]\n", msg))
+		slog.Info(fmt.Sprintf("%-" + strconv.Itoa(length) + "s  [SUCCESS]", msg))
 		return msg
 	}
 	if len(msg) > length {
 		chars = strings.Repeat(">", length - len(msg))
 	}
-	fmt.Println(msg + " " + chars + " [FAIL]")
+	slog.Info(msg + " " + chars + " [FAILED]")
 	return msg
 }
 
