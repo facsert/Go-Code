@@ -15,11 +15,12 @@ func Read(file string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("open file error %w", err)
 	}
+	defer fs.Close()
 
 	reader, output := bufio.NewReader(fs), make([]string, 0, 100)
 	for {
 		line, err := reader.ReadString('\n')
-        if err == io.EOF { break}
+        if err == io.EOF { break }
 		if err != nil {
 			return "", fmt.Errorf("read file error %w", err)
 		}
@@ -36,6 +37,7 @@ func Scanner(file string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("open file error %w", err)
 	}
+	defer fs.Close()
 
 	scanner, output := bufio.NewScanner(fs), make([]string, 0, 100)
 	for scanner.Scan() {
@@ -55,6 +57,7 @@ func Writer(file string, s string) error {
 	if err!= nil {
 		return fmt.Errorf("open file error %w", err)
 	}
+	defer fs.Close()
 
 	writer := bufio.NewWriter(fs)
 	_, err = writer.WriteString(s)

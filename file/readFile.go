@@ -19,7 +19,6 @@ type File struct {
 
 // 读取文件全部内容
 func (f *File) Read() (string, error) {
-
 	content, err := os.ReadFile(f.FileName)
 	if err != nil {
 		return "", fmt.Errorf("read file error: %w", err)

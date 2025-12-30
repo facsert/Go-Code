@@ -1,11 +1,3 @@
-/*
- * @Author: facsert
- * @Date: 2023-08-06 22:18:09
- * @LastEditTime: 2023-08-06 22:23:27
- * @LastEditors: facsert
- * @Description:
- */
-
 package comm
 
 import (
@@ -24,12 +16,13 @@ var ROOT_PATH string
 func Init() {
 	defer func() {
 		if ROOT_PATH == "" {
-			panic(fmt.Errorf("get root path failed"))
+			log.Fatalln("get root path failed")
 		}
 		if err := NewLogger(AbsPath("log", "report.log"), 50, 3); err != nil {
 			log.Fatalf("initialize logger failed: %v", err)
 		}
 	}()
+
 	// go run 源码路径
 	_, runtimePath, _, ok := runtime.Caller(0)
 	if ok && strings.HasSuffix(runtimePath, ".go") {
@@ -49,7 +42,7 @@ func Init() {
 
 // 基于根目录的绝对路径
 func AbsPath(elems ...string) string {
-	for i := (len(elems)-1); i > 0; i-- {
+	for i := (len(elems) - 1); i > 0; i-- {
 		if filepath.IsAbs(elems[i]) {
 			elems = elems[i:]
 			break
@@ -65,7 +58,7 @@ func AbsPath(elems ...string) string {
 // 创建路径
 func MakeDirs(path string) error {
 	fileInfo, err := os.Stat(path)
-    if os.IsNotExist(err) {
+	if os.IsNotExist(err) {
 		return os.MkdirAll(path, 0755)
 	}
 	if err != nil {
@@ -80,8 +73,8 @@ func MakeDirs(path string) error {
 // 标题打印
 func Title(level int, title string, a ...any) string {
 	title = fmt.Sprintf(title, a)
-	separator := [...]string{"#", "=", "*", "-"}[level % 4]
-	line := strings.Repeat(separator, 100)
+	separator := [...]string{"#", "=", "*", "-"}[level%4]
+	line := strings.Repeat(separator, max((100-len(title))/2, 0))
 	log.Printf("%s %s %s", line, title, line)
 	return title
 }
@@ -91,11 +84,11 @@ func Display(success bool, msg string, a ...any) string {
 	msg = fmt.Sprintf(msg, a)
 	length, chars := 80, ""
 	if success {
-		slog.Info(fmt.Sprintf("%-" + strconv.Itoa(length) + "s  [SUCCESS]", msg))
+		slog.Info(fmt.Sprintf("%-"+strconv.Itoa(length)+"s  [SUCCESS]", msg))
 		return msg
 	}
 	if len(msg) > length {
-		chars = strings.Repeat(">", length - len(msg))
+		chars = strings.Repeat(">", length-len(msg))
 	}
 	slog.Info(msg + " " + chars + " [FAILED]")
 	return msg
@@ -113,7 +106,9 @@ func Exists(dir string) bool {
 func ListDir(dst string, abs bool) ([]string, error) {
 	files := make([]string, 0, 10)
 	err := filepath.Walk(dst, func(path string, info os.FileInfo, err error) error {
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		if !info.IsDir() {
 			if abs {
 				files = append(files, path)
