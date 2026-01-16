@@ -23,20 +23,20 @@ func Init() {
 		}
 	}()
 
+	// build 可执行文件
+	execPath, err := os.Executable()
+	if err == nil {
+		if !strings.Contains(execPath, "go-build") || !strings.Contains(execPath, "b001"){
+			ROOT_PATH = filepath.Dir(execPath)
+			return
+		}
+	}
+
 	// go run 源码路径
 	_, runtimePath, _, ok := runtime.Caller(0)
 	if ok && strings.HasSuffix(runtimePath, ".go") {
 		ROOT_PATH = filepath.Dir(filepath.Dir(runtimePath))
 		return
-	}
-
-	// build 可执行文件
-	execPath, err := os.Executable()
-	if err == nil {
-		if !strings.Contains(execPath, "exe") {
-			ROOT_PATH = filepath.Dir(execPath)
-			return
-		}
 	}
 }
 
