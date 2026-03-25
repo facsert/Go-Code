@@ -38,10 +38,9 @@ func NewLogger(filePath string, maxSize, maxBackup int) error {
 	}
 
 	l := &Logger{
-		FilePath:  filePath,
-		MaxSizeMB: maxSize,
-
-		maxSizeByte: int64(maxSize * 1024 * 1025),
+		FilePath:    filePath,
+		MaxSizeMB:   maxSize,
+		maxSizeByte: int64(maxSize * 1024 * 1024),
 		maxBackup:   maxBackup,
 		currSize:    0,
 		file:        nil,

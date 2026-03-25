@@ -24,10 +24,7 @@ func (t *Limiter) Get() {
 }
 
 func (t *Limiter) Back() {
-	select {
-	case t.token <- struct{}{}:
-	default:
-	}
+	t.token <- struct{}{}
 }
 
 func (t *Limiter) Close() {
